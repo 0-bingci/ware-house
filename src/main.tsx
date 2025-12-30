@@ -10,10 +10,8 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <SidebarProvider>
       <AppSidebar />
-      <main>
-        <SidebarTrigger />
-        <RouterProvider router={router} />
-      </main>
+      <SidebarTrigger />
+      <RouterProvider router={router} />
     </SidebarProvider>
   </StrictMode>
 );
