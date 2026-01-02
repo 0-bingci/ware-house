@@ -2,24 +2,25 @@ import { StockList } from "@/components/table/stockList";
 import { StockToolbar } from "@/components/table/common/stockToolbar";
 import { AICard } from "@/components/ai-card";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { VersionSetting } from "@/components/table/common/VersionSetting";
+import { useState } from "react";
 function Stock() {
+  const [searchKeyword, setSearchKeyword] = useState<string>("");
   return (
     <div className="flex-1 flex">
       {/* 左侧 StockList：flex-1 自适应 */}
       <div className="flex-1 flex flex-col overflow-hidden p-8">
-        <div className="h-16 border-b border-gray-200 bg-white">
-          {/* 后续可添加顶部导航、Logo、面包屑等内容，当前空占位 */}
-          <Input placeholder="请输入版本号" />
-          <Button>保存</Button>
-        </div>
+        <VersionSetting></VersionSetting>
+
         {/* 顶部筛选区域：横向排列，固定在上方 */}
-        <StockToolbar />
+        <StockToolbar 
+        searchKeyword={searchKeyword} 
+        setSearchKeyword={setSearchKeyword} 
+      />
 
         {/* 库存列表区域：占据剩余空间，独立滚动 */}
         <div className="flex-1 overflow-auto p-2">
-          <StockList />
+          <StockList searchKeyword={searchKeyword}/>
         </div>
       </div>
 

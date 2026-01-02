@@ -36,9 +36,9 @@ const items = [
 ];
 
 export function AppSidebar() {
-  const location = useLocation();
-  const currentPath = location.pathname;
-  console.log(currentPath);
+  // const location = useLocation();
+  // const currentPath = location.pathname;
+  // console.log(currentPath);
 
   return (
     <Sidebar>
@@ -52,9 +52,9 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem
                   key={item.title}
-                  className={
-                    currentPath === item.url ? "bg-gray-100 text-primary" : ""
-                  }
+                  // className={
+                  //   currentPath === item.url ? "bg-gray-100 text-primary" : ""
+                  // }
                 >
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
