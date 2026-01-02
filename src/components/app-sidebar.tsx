@@ -1,5 +1,5 @@
 import { Calendar, Home, Inbox, Search } from "lucide-react";
-
+import { useLocation } from "react-router";
 import {
   Sidebar,
   SidebarContent,
@@ -36,15 +36,26 @@ const items = [
 ];
 
 export function AppSidebar() {
+  const location = useLocation();
+  const currentPath = location.pathname;
+  console.log(currentPath);
+
   return (
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel className="h-16 text-2xl font-bold">
+            Application
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem
+                  key={item.title}
+                  className={
+                    currentPath === item.url ? "bg-gray-100 text-primary" : ""
+                  }
+                >
                   <SidebarMenuButton asChild>
                     <a href={item.url}>
                       <item.icon />
