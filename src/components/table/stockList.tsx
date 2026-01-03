@@ -19,29 +19,25 @@ interface StockListProps {
 // 接收 props
 export const StockList = ({ searchKeyword, refreshKey = 0, currentVersion = "1.0.0" }: StockListProps) => {
   const [tableData, setTableData] = useState<Stock[]>([]);
-  const [loading, setLoading] = useState(false);
   
   // 将编辑状态合并为一个对象，减少状态更新次数
   const [editingState, setEditingState] = useState<{
-    rowId: string | null;
     productId: number | null;
     originalAmount: number;
     totalAmount: number;
     operateAmount: number;
     operateType: "in" | "out";
   }>({
-    rowId: null,
     productId: null,
     originalAmount: 0,
     totalAmount: 0,
     operateAmount: 0,
-    operateType: "in"
+    operateType: "in" as const,
   });
 
   // 将fetchStockData函数移到组件顶层，使其可被外部访问
   // 使用useCallback缓存该函数，确保引用稳定
   const fetchStockData = useCallback(async () => {
-    setLoading(true); // 开启加载
     try {
       // 调用 getStockList，用 await 等待 Promise 解析结果
       const data = await getStockList();
@@ -51,9 +47,7 @@ export const StockList = ({ searchKeyword, refreshKey = 0, currentVersion = "1.0
     } catch (error) {
       console.error('组件内获取库存失败：', error);
       // 可选：给用户提示
-      // alert('获取库存数据失败，请稍后重试');
-    } finally {
-      setLoading(false); // 无论成功失败，关闭加载
+      // alert('获取库存失败，请重试');
     }
   }, []);
 
@@ -84,9 +78,8 @@ export const StockList = ({ searchKeyword, refreshKey = 0, currentVersion = "1.0
   
 
   // 原有编辑逻辑（修改为保存商品ID）
-  const handleStartEdit = useCallback((rowId: string, currentAmount: number, productId: number) => {
+  const handleStartEdit = useCallback((currentAmount: number, productId: number) => {
     setEditingState({
-      rowId,
       productId,
       originalAmount: currentAmount,
       totalAmount: currentAmount,
@@ -96,7 +89,7 @@ export const StockList = ({ searchKeyword, refreshKey = 0, currentVersion = "1.0
   }, []);
 
   const handleConfirmEdit = useCallback(async () => {
-    const { rowId, productId, totalAmount, originalAmount, operateType } = editingState;
+    const { productId, totalAmount, originalAmount, operateType } = editingState;
     
     if (totalAmount < 0) {
       alert("库存总数不能为负数！");
@@ -130,7 +123,6 @@ export const StockList = ({ searchKeyword, refreshKey = 0, currentVersion = "1.0
       
       // 重置编辑状态
       setEditingState({
-        rowId: null,
         productId: null,
         originalAmount: 0,
         totalAmount: 0,
@@ -144,7 +136,6 @@ export const StockList = ({ searchKeyword, refreshKey = 0, currentVersion = "1.0
 
   const handleCancelEdit = useCallback(() => {
     setEditingState({
-      rowId: null,
       productId: null,
       originalAmount: 0,
       totalAmount: 0,
@@ -203,15 +194,14 @@ export const StockList = ({ searchKeyword, refreshKey = 0, currentVersion = "1.0
   // 原有列配置逻辑（修改为支持联动更新）
   // 使用useMemo缓存columnsWithInlineEdit，只有当依赖项变化时才重新创建
   const columnsWithInlineEdit = useMemo(() => {
-    return StockColumns.map(col => {
+    return StockColumns.map((col: any) => {
       if (col.accessorKey === "amount") {
         return {
           ...col,
-          cell: ({ row }) => {
-            const rowId = row.id;
+          cell: ({ row }: { row: any }) => {
             const currentStock = row.original;
 
-            if (editingState.rowId === rowId) {
+            if (editingState.productId === currentStock.id) {
               return (
                 <div className="flex items-center gap-2">
                   <Input
@@ -261,11 +251,10 @@ export const StockList = ({ searchKeyword, refreshKey = 0, currentVersion = "1.0
       if (col.accessorKey === "action") {
         return {
           ...col,
-          cell: ({ row }) => {
-            const rowId = row.id;
+          cell: ({ row }: { row: any }) => {
             const currentStock = row.original;
 
-            if (editingState.rowId === rowId) {
+            if (editingState.productId === currentStock.id) {
               return (
                 <div className="flex items-center gap-2">
                   <Button
@@ -293,7 +282,7 @@ export const StockList = ({ searchKeyword, refreshKey = 0, currentVersion = "1.0
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => handleStartEdit(rowId, currentStock.amount, currentStock.id)}
+                  onClick={() => handleStartEdit(currentStock.amount, currentStock.id)}
                   className="h-8 px-2"
                 >
                   修改

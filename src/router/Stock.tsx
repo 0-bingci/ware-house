@@ -1,7 +1,5 @@
 import { StockList } from "@/components/table/stockList";
 import { StockToolbar } from "@/components/table/common/stockToolbar";
-import { AICard } from "@/components/ai-card";
-import { Card } from "@/components/ui/card";
 import { VersionSetting } from "@/components/table/common/VersionSetting";
 import { useState } from "react";
 function Stock() {

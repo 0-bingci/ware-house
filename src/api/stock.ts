@@ -1,13 +1,49 @@
 // 引入自定义实例
 import service from '@/utils/http';
 
+// 类型定义
+interface ProductData {
+  skuFormat: string;
+  amount: number;
+  versionSeqNo: number;
+  description?: string;
+  globalVersion: string;
+}
+
+interface UpdateData {
+  operation_type: string;
+  changeAmount: number;
+  after_qty?: number;
+  remark?: string;
+  created_by: number;
+  updated_by: number;
+  versionSeqNo: number;
+  globalVersion: string;
+}
+
+interface ParsePDFResult {
+  message: string;
+  data: Array<{
+    sku: string;
+    count: number;
+    operation_type: string;
+  }>;
+}
+
+interface StockResponse {
+  message: string;
+  after_qty: number;
+  seq_no: number;
+  productId?: number;
+}
+
 // 1. 获取库存列表
 // 实际请求 URL：baseURL + '/products' → http://localhost:3000/api/products
-export const getStockList = async (params = {}) => {
+export const getStockList = async (params: Record<string, any> = {}) => {
   try {
     const res = await service.get('/products', { params });
     return res.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('获取库存列表异常：', error);
     return Promise.reject(error);
   }
@@ -16,7 +52,7 @@ export const getStockList = async (params = {}) => {
 // 2. 新增商品
 // 后端接口：POST /api/products
 // 支持格式：A72-L-BLACK → 自动解析为 name:A72, size:L, color:BLACK, sku:A72-L-BLACK
-export const createProduct = async (productData) => {
+export const createProduct = async (productData: ProductData) => {
   try {
     // 1. 前端参数校验
     const { skuFormat, amount, versionSeqNo, description, globalVersion } = productData;
@@ -46,7 +82,7 @@ export const createProduct = async (productData) => {
 
     // 3. 返回接口响应数据（后端返回的 { message, productId, product }）
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     // 4. 错误处理
     const errorMsg = error.response?.data?.error || error.message || '创建商品失败';
     console.error('创建商品接口异常：', errorMsg);
@@ -56,7 +92,7 @@ export const createProduct = async (productData) => {
 
 // 3. 删除商品
 // 后端接口：DELETE /api/products/:id
-export const deleteProduct = async (productId) => {
+export const deleteProduct = async (productId: number | string) => {
   try {
     // 1. 前端参数校验
     if (!productId) {
@@ -69,7 +105,7 @@ export const deleteProduct = async (productId) => {
 
     // 3. 返回接口响应数据
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     // 4. 错误处理
     const errorMsg = error.response?.data?.error || error.message || '删除商品失败';
     console.error('删除商品接口异常：', errorMsg);
@@ -79,7 +115,7 @@ export const deleteProduct = async (productId) => {
 
 // 4. 更新库存
 // 后端接口：POST /api/stock/:productId/operation
-export const updateStock = async (productId, updateData) => {
+export const updateStock = async (productId: number | string, updateData: UpdateData) => {
   try {
     // 1. 前端参数校验
     const { operation_type, changeAmount, after_qty, remark, created_by, updated_by, versionSeqNo, globalVersion } = updateData;
@@ -130,8 +166,8 @@ export const updateStock = async (productId, updateData) => {
     });
 
     // 3. 返回接口响应数据（后端返回的 { message, after_qty, seq_no }）
-    return response.data;
-  } catch (error) {
+    return response.data as StockResponse;
+  } catch (error: any) {
     // 4. 错误处理
     const errorMsg = error.response?.data?.error || error.message || '更新库存失败';
     console.error('更新库存接口异常：', errorMsg);
@@ -149,7 +185,7 @@ export const getGlobalVersions = async () => {
 
     // 返回接口响应数据
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     // 错误处理
     const errorMsg = error.response?.data?.error || error.message || '查询全局版本号失败';
     console.error('查询全局版本号接口异常：', errorMsg);
@@ -159,7 +195,7 @@ export const getGlobalVersions = async () => {
 
 //6. 根据全局版本号查询库存变动记录
 // 后端接口：GET /api/stock/history/version/:globalVersion
-export const getStockHistoryByGlobalVersion = async (globalVersion) => {
+export const getStockHistoryByGlobalVersion = async (globalVersion: string) => {
   try {
     // 1. 前端参数校验
     if (!globalVersion || globalVersion.trim() === '') {
@@ -172,7 +208,7 @@ export const getStockHistoryByGlobalVersion = async (globalVersion) => {
 
     // 3. 返回接口响应数据
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     const errorMsg = error.response?.data?.error || error.message || '查询库存变动记录失败';
     console.error('查询库存变动记录接口异常：', errorMsg);
     return Promise.reject(new Error(errorMsg));
@@ -181,7 +217,7 @@ export const getStockHistoryByGlobalVersion = async (globalVersion) => {
 
 //7 pdf解析
 // 后端接口：POST /api/pdf/parse
-export const parsePDF = async (file) => {
+export const parsePDF = async (file: File) => {
   try {
     if (!file) {
       return Promise.reject(new Error('请选择要上传的PDF文件'));
@@ -198,8 +234,8 @@ export const parsePDF = async (file) => {
       }
     });
 
-    return response.data;
-  } catch (error) {
+    return response.data as ParsePDFResult;
+  } catch (error: any) {
     const errorMsg = error.response?.data?.error || error.message || 'PDF解析失败';
     console.error('PDF解析接口异常：', errorMsg);
     return Promise.reject(new Error(errorMsg));
@@ -208,7 +244,7 @@ export const parsePDF = async (file) => {
 
 //8. 根据sku更新库存
 // 后端接口：POST /api/stock/sku/:sku/operation
-export const updateStockBySku = async (sku, updateData) => {
+export const updateStockBySku = async (sku: string, updateData: UpdateData) => {
   try {
     // 1. 前端参数校验
     const { operation_type, changeAmount, after_qty, remark, created_by, updated_by, versionSeqNo, globalVersion } = updateData;
@@ -259,8 +295,8 @@ export const updateStockBySku = async (sku, updateData) => {
     });
 
     // 3. 返回接口响应数据（后端返回的 { message, after_qty, seq_no, productId }）
-    return response.data;
-  } catch (error) {
+    return response.data as StockResponse;
+  } catch (error: any) {
     // 4. 错误处理
     const errorMsg = error.response?.data?.error || error.message || '根据SKU更新库存失败';
     console.error('根据SKU更新库存接口异常：', errorMsg);

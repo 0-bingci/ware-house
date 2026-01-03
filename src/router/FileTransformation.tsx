@@ -14,26 +14,48 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+// 类型定义
+interface BatchResult {
+  successList: Array<{
+    sku: string;
+    changeAmount: number;
+    message?: string;
+    detail?: any;
+  }>;
+  failList: Array<{
+    sku: string;
+    changeAmount: number;
+    errorMsg: string;
+  }>;
+}
+
+interface ParseResultData {
+  message: string;
+  data: Array<{
+    sku: string;
+    count: number;
+    operation_type: string;
+  }>;
+}
+
 function FileTransformation() {
   // 使用ref引用文件输入元素
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // 状态管理：富文本内容、上传的文件、解析结果、加载状态
-  const [richTextContent, setRichTextContent] = useState("");
-  const [uploadedFile, setUploadedFile] = useState(null);
-  const [parseResult, setParseResult] = useState(null);
-  const [isParsing, setIsParsing] = useState(false);
-  const [error, setError] = useState(null);
+  const [richTextContent, setRichTextContent] = useState<string>("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [parseResult, setParseResult] = useState<ParseResultData | null>(null);
+  const [isParsing, setIsParsing] = useState<boolean>(false);
   // 新增：批量更新库存的加载状态
-  const [isBatchUpdating, setIsBatchUpdating] = useState(false);
+  const [isBatchUpdating, setIsBatchUpdating] = useState<boolean>(false);
 
   // 处理文件上传变更事件
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       setUploadedFile(file);
       setParseResult(null);
-      setError(null);
       
       // 检查是否为PDF文件
       if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
@@ -49,13 +71,12 @@ function FileTransformation() {
   };
 
   // PDF解析函数
-  const parsePDFContent = async (file) => {
+  const parsePDFContent = async (file: File) => {
     setIsParsing(true);
-    setError(null);
     try {
       // 调用PDF解析API
       const result = await parsePDF(file);
-      setParseResult(result.data);
+      setParseResult(result);
       
       // 将解析结果转换为富文本格式
       let markdownContent = `# PDF解析结果\n\n`;
@@ -64,7 +85,7 @@ function FileTransformation() {
       markdownContent += `|-----|------|----------|\n`;
       
       if (result.data && result.data.length > 0) {
-        result.data.forEach(item => {
+        result.data.forEach((item: { sku: string; count: number; operation_type: string }) => {
           markdownContent += `| ${item.sku} | ${item.count} | ${item.operation_type} |\n`;
         });
       } else {
@@ -72,9 +93,8 @@ function FileTransformation() {
       }
       
       setRichTextContent(markdownContent);
-    } catch (err) {
+    } catch (err: any) {
       console.error('PDF解析失败：', err);
-      setError(err.message || 'PDF解析失败');
       setRichTextContent(`# PDF解析结果\n\n## 解析状态：失败\n\n## 错误信息：${err.message || '未知错误'}\n\n`);
     } finally {
       setIsParsing(false);
@@ -82,7 +102,7 @@ function FileTransformation() {
   };
 
   // 新增：从富文本解析数据并批量更新库存
-  const batchUpdateStockFromRichText = async (content) => {
+  const batchUpdateStockFromRichText = async (content: string): Promise<BatchResult> => {
     if (!content || content.trim() === '') {
       return Promise.reject(new Error('富文本内容不能为空'));
     }
@@ -97,8 +117,8 @@ function FileTransformation() {
 
       // 2. 解析表格中的 SKU 和 数量（匹配 Markdown 表格行格式）
       const tableRowReg = /\| ([^\|]+) \| ([^\|]+) \| ([^\|]+) \|/g;
-      const skuCountMap = new Map(); // 用于去重并统计总数
-      let matchResult;
+      const skuCountMap = new Map<string, number>(); // 用于去重并统计总数
+      let matchResult: RegExpExecArray | null;
 
       // 遍历所有表格行，提取SKU和数量
       while ((matchResult = tableRowReg.exec(content)) !== null) {
@@ -114,7 +134,7 @@ function FileTransformation() {
 
         // 合并相同SKU的数量
         if (skuCountMap.has(skuTrimmed)) {
-          skuCountMap.set(skuTrimmed, skuCountMap.get(skuTrimmed) + count);
+          skuCountMap.set(skuTrimmed, skuCountMap.get(skuTrimmed)! + count);
         } else {
           skuCountMap.set(skuTrimmed, count);
         }
@@ -126,7 +146,7 @@ function FileTransformation() {
       }
 
       // 3. 批量调用库存更新接口
-      const batchResult = {
+      const batchResult: BatchResult = {
         successList: [], // 成功更新的SKU信息
         failList: []     // 更新失败的SKU信息
       };
@@ -155,8 +175,8 @@ function FileTransformation() {
             message: updateResult.message || '库存更新成功',
             detail: updateResult
           });
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : '未知错误';
+        } catch (error: any) {
+          const errorMsg = error.response?.data?.error || error.message || '更新失败';
           // 记录失败结果
           batchResult.failList.push({
             sku,
@@ -169,8 +189,8 @@ function FileTransformation() {
 
       // 返回批量处理结果
       return batchResult;
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : '批量更新库存异常';
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error || error.message || '批量更新库存异常';
       console.error('批量更新库存失败：', errorMsg);
       return Promise.reject(new Error(errorMsg));
     }
@@ -182,7 +202,6 @@ function FileTransformation() {
     setRichTextContent("");
     setUploadedFile(null);
     setParseResult(null);
-    setError(null);
     
     // 重置文件输入元素的值，允许再次选择相同文件
     if (fileInputRef.current) {

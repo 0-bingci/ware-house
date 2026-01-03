@@ -72,8 +72,8 @@ function History() {
     fetchRecords();
   }, [selectedVersion]);
 
-  // 4. 处理版本选择变更事件
-  const handleVersionChange = (e) => {
+  // 处理版本号变化
+  const handleVersionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedVersion(e.target.value);
   };
 
