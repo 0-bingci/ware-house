@@ -1,5 +1,4 @@
 import { Calendar, Home, Inbox, Search } from "lucide-react";
-import { useLocation } from "react-router";
 import {
   Sidebar,
   SidebarContent,
@@ -29,8 +28,8 @@ const items = [
     icon: Calendar,
   },
   {
-    title: "Ai Services",
-    url: "/openai",
+    title: "History",
+    url: "/history",
     icon: Search,
   },
 ];
