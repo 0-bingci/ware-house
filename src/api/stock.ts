@@ -97,11 +97,14 @@ export const updateStock = async (productId, updateData) => {
     if (changeAmount < 0) {
       return Promise.reject(new Error('改变值不能为负数'));
     }
-    if (after_qty === undefined || after_qty === null || isNaN(after_qty)) {
-      return Promise.reject(new Error('操作后总数必须为有效数字'));
-    }
-    if (after_qty < 0) {
-      return Promise.reject(new Error('操作后总数不能为负数'));
+    // 只有ADJUST操作类型才需要验证after_qty
+    if (operation_type === 'ADJUST') {
+      if (after_qty === undefined || after_qty === null || isNaN(after_qty)) {
+        return Promise.reject(new Error('调整操作类型必须提供操作后总数'));
+      }
+      if (after_qty < 0) {
+        return Promise.reject(new Error('操作后总数不能为负数'));
+      }
     }
     if (!globalVersion || globalVersion.trim() === '') {
       return Promise.reject(new Error('全局版本号不能为空'));
@@ -178,9 +181,6 @@ export const getStockHistoryByGlobalVersion = async (globalVersion) => {
 
 //7 pdf解析
 // 后端接口：POST /api/pdf/parse
-// stock.ts 中的 parsePDF 函数，完全重写，简化到极致
-import axios from 'axios'; // 直接引入原生 Axios，不使用封装的 service（先排除封装干扰）
-
 export const parsePDF = async (file) => {
   try {
     if (!file) {
@@ -191,13 +191,10 @@ export const parsePDF = async (file) => {
     // 强制指定字段名和文件名，确保无遗漏
     formData.append('pdf', file, file.name);
 
-    // 直接使用原生 Axios，不使用任何拦截器/封装
-    const response = await axios.post('http://localhost:3000/api/pdf/parse', formData, {
-      // 绝对不手动设置 Content-Type
+    // 使用封装的 service 实例
+    const response = await service.post('/pdf/parse', formData, {
       headers: {
-        // 若前端有跨域凭证需求，添加此配置（可选）
-        // 'Access-Control-Allow-Origin': 'http://localhost:3000',
-        // withCredentials: true
+        'Content-Type': 'multipart/form-data'
       }
     });
 
@@ -205,6 +202,68 @@ export const parsePDF = async (file) => {
   } catch (error) {
     const errorMsg = error.response?.data?.error || error.message || 'PDF解析失败';
     console.error('PDF解析接口异常：', errorMsg);
+    return Promise.reject(new Error(errorMsg));
+  }
+};
+
+//8. 根据sku更新库存
+// 后端接口：POST /api/stock/sku/:sku/operation
+export const updateStockBySku = async (sku, updateData) => {
+  try {
+    // 1. 前端参数校验
+    const { operation_type, changeAmount, after_qty, remark, created_by, updated_by, versionSeqNo, globalVersion } = updateData;
+    
+    // 校验必填字段
+    if (!sku || sku.trim() === '') {
+      return Promise.reject(new Error('SKU不能为空'));
+    }
+    if (!operation_type || operation_type.trim() === '') {
+      return Promise.reject(new Error('操作类型不能为空'));
+    }
+    if (changeAmount === undefined || changeAmount === null || isNaN(changeAmount)) {
+      return Promise.reject(new Error('改变值必须为有效数字'));
+    }
+    if (changeAmount < 0) {
+      return Promise.reject(new Error('改变值不能为负数'));
+    }
+    // 只有ADJUST操作类型才需要验证after_qty
+    if (operation_type === 'ADJUST') {
+      if (after_qty === undefined || after_qty === null || isNaN(after_qty)) {
+        return Promise.reject(new Error('调整操作类型必须提供操作后总数'));
+      }
+      if (after_qty < 0) {
+        return Promise.reject(new Error('操作后总数不能为负数'));
+      }
+    }
+    if (!globalVersion || globalVersion.trim() === '') {
+      return Promise.reject(new Error('全局版本号不能为空'));
+    }
+    if (created_by === undefined || created_by === null || isNaN(created_by)) {
+      return Promise.reject(new Error('创建人ID必须为有效数字'));
+    }
+    if (updated_by === undefined || updated_by === null || isNaN(updated_by)) {
+      return Promise.reject(new Error('更新人ID必须为有效数字'));
+    }
+
+    // 2. 发送 POST 请求
+    // 接口完整地址：baseURL + '/stock/sku/' + sku + '/operation' → 即 http://localhost:3000/api/stock/sku/:sku/operation
+    const response = await service.post(`/stock/sku/${sku}/operation`, {
+      operation_type,
+      changeAmount,
+      after_qty,
+      remark,
+      created_by,
+      updated_by,
+      versionSeqNo,
+      globalVersion
+    });
+
+    // 3. 返回接口响应数据（后端返回的 { message, after_qty, seq_no, productId }）
+    return response.data;
+  } catch (error) {
+    // 4. 错误处理
+    const errorMsg = error.response?.data?.error || error.message || '根据SKU更新库存失败';
+    console.error('根据SKU更新库存接口异常：', errorMsg);
     return Promise.reject(new Error(errorMsg));
   }
 };
